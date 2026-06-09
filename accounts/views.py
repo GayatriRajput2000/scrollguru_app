@@ -82,3 +82,9 @@ def profile(request):
 def user_logout(request):
     logout(request)
     return redirect('login')
+
+
+def redirect_to_login(request):
+    if request.user.is_authenticated:
+        return redirect('home')      # Logged in user ko home bhej do
+    return redirect('login')         # Anonymous user ko login page pe bhej do

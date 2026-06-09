@@ -5,11 +5,12 @@ from django.conf.urls.static import static
 
 # Views import kar rahe hain
 from content.views import follow_user, home, like_content,increment_view,load_more,share_content, stories_view, unfollow_user, upload_story,upload_video_view
-from accounts.views import signup, user_login, profile, user_logout
+from accounts.views import signup, user_login, profile, user_logout, redirect_to_login
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home, name='home'),
+    path('', redirect_to_login, name='home_redirect'),
+    path('home/', home, name='home'),
     path('like/<int:content_id>/', like_content, name='like_content'),
     path('view/<int:content_id>/', increment_view, name='increment_view'),
     path('load-more/', load_more, name='load_more'),

@@ -11,7 +11,9 @@ from django.contrib.auth.decorators import login_required
 from accounts.models import CustomUser
 from .models import Follow
 from django.utils import timezone
-
+# Group by user for better UI
+from itertools import groupby
+from operator import attrgetter
 
 def get_or_create_streak(request):
     """
@@ -232,10 +234,6 @@ def upload_story(request):
 def stories_view(request):
     # Active stories only (not expired)
     active_stories = Story.objects.filter(expires_at__gt=timezone.now()).order_by('user', '-created_at')
-    
-    # Group by user for better UI
-    from itertools import groupby
-    from operator import attrgetter
     stories_by_user = {}
     for user, stories in groupby(active_stories, key=attrgetter('user')):
         stories_by_user[user] = list(stories)
