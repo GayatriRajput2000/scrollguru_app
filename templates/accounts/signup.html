@@ -59,6 +59,20 @@
                     {{ form.password2 }}
                 </div>
 
+                <!-- Beta Access Code (Added) -->
+                <div>
+                    <label class="block text-zinc-400 text-sm mb-2 font-medium">
+                        Beta Access Code <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="beta_code"
+                        required
+                        placeholder="Enter Beta Access Code"
+                        class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 focus:outline-none focus:border-green-500"
+                    >
+                </div>
+
                 <button type="submit" 
                         class="w-full bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 rounded-2xl text-lg transition-all mt-4">
                     Create Account & Start Learning
@@ -70,7 +84,7 @@
                 <a href="/login/" class="text-green-400 hover:text-green-500 font-medium">Login here</a>
             </div>
         </div>
-
+    
         <p class="text-center text-zinc-500 text-xs mt-8">
             By signing up, you agree to our Terms & Privacy Policy
         </p>

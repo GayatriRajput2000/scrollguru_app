@@ -5,16 +5,48 @@ from django.contrib import messages
 from .forms import CustomUserCreationForm, ProfileUpdateForm
 
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from django.contrib import messages
+from .forms import CustomUserCreationForm
+from users.models import BetaCode   # ← Yeh line add karo
+
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
+        beta_code_input = request.POST.get('beta_code', '').strip().upper()
+
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, "Account created successfully!")
-            return redirect('home')
+            if not beta_code_input:
+                messages.error(request, "Beta Access Code is required for registration!")
+                return render(request, 'accounts/signup.html', {'form': form})
+
+            try:
+                beta = BetaCode.objects.get(code=beta_code_input, is_used=False)
+                
+                user = form.save()
+                user.is_beta_user = True
+                user.beta_code_used = beta_code_input
+                user.save()
+
+                # Mark code as used
+                beta.is_used = True
+                beta.used_by = user
+                beta.save()
+
+                login(request, user)
+                messages.success(request, "🎉 Welcome to ScrollGuru Beta! You are one of the first 10 users.")
+                return redirect('feed')   # ya 'home'
+
+            except BetaCode.DoesNotExist:
+                messages.error(request, "Invalid or already used Beta Code")
+                return render(request, 'accounts/signup.html', {'form': form})
+        else:
+            messages.error(request, "Please correct the errors below")
+    
     else:
         form = CustomUserCreationForm()
+
     return render(request, 'accounts/signup.html', {'form': form})
 
 
