@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stories - ScrollGuru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .story-video { height: 100vh; width: 100vw; object-fit: cover; }
+    </style>
+</head>
+<body class="bg-black text-white">
+
+<div class="fixed top-4 left-4 z-50">
+    <button onclick="window.history.back()" class="bg-black/70 px-4 py-2 rounded-full text-sm flex items-center gap-2">
+        ← Back
+    </button>
+</div>
+
+<div class="flex h-screen overflow-x-auto snap-x snap-mandatory" id="stories-container">
+    {% for user, user_stories in stories_by_user.items %}
+        {% for story in user_stories %}
+        <div class="min-w-full h-screen snap-center relative" id="story-{{ story.id }}">
+            <video class="story-video" loop muted playsinline>
+                <source src="{{ story.video.url }}" type="video/mp4">
+            </video>
+            
+            <div class="absolute top-6 left-6 flex items-center gap-3 z-10">
+                <img src="{% if story.user.profile_pic %}{{ story.user.profile_pic.url }}{% else %}https://via.placeholder.com/48{% endif %}" 
+                     class="w-10 h-10 rounded-full border-2 border-white object-cover">
+                <div>
+                    <p class="font-bold">{{ story.user.username }}</p>
+                    <p class="text-xs text-zinc-300">{{ story.created_at|timesince }} ago</p>
+                </div>
+            </div>
+
+            {% if story.caption %}
+            <div class="absolute bottom-20 left-6 right-6 bg-black/60 p-4 rounded-2xl">
+                <p class="text-sm">{{ story.caption }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+
+<script>
+    // Auto play next story on end
+    document.querySelectorAll('video').forEach((video, index) => {
+        video.addEventListener('ended', () => {
+            const nextVideo = document.querySelectorAll('video')[index + 1];
+            if (nextVideo) {
+                nextVideo.play();
+            } else {
+                window.history.back(); // All stories done
+            }
+        });
+    });
+
+    // Start playing first video
+    const firstVideo = document.querySelector('video');
+    if (firstVideo) firstVideo.play();
+</script>
+
+</body>
+</html>

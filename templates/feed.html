@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ScrollGuru — Learn Addictively</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
+    <style>
+        body, html { height: 100vh; margin: 0; background: #050505; overflow: hidden; color: white; font-family: system-ui; }
+        .feed-container { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+        .feed-container::-webkit-scrollbar { display: none; }
+        .video-slide { height: 100vh; scroll-snap-align: start; scroll-snap-stop: always; position: relative; }
+        .info-gradient { background: linear-gradient(to top, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.4) 70%, transparent 100%); }
+        .active-chip { background-color: #22c55e !important; color: black !important; font-weight: 600; }
+        
+        .heart-pop { 
+            position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%) scale(0); 
+            font-size: 90px; opacity: 0; animation: popHeart 0.8s ease-out forwards; z-index: 50; 
+        }
+        @keyframes popHeart { 
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; } 
+            40% { transform: translate(-50%, -50%) scale(1.3); } 
+            100% { transform: translate(-50%, -50%) scale(0); opacity: 0; } 
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+<div class="fixed top-0 left-0 right-0 bg-black/95 z-40 border-b border-zinc-800">
+    <div class="max-w-md mx-auto p-4">
+        <div class="flex items-center justify-between">
+            <h1 onclick="window.location.href='/'" class="text-3xl font-black text-green-500 tracking-tighter cursor-pointer">SG</h1>
+            
+            <form action="/" method="GET" class="flex-1 mx-4">
+                <input type="text" name="search" value="{{ search_query|default:'' }}" 
+                       placeholder="Search tips, tricks, python..." 
+                       class="w-full bg-zinc-900 text-sm px-5 py-2.5 rounded-3xl border border-zinc-700 focus:border-green-500 outline-none">
+            </form>
+
+            <div onclick="toggleDashboard(true)" class="flex items-center gap-2 bg-zinc-900/90 px-4 py-2 rounded-3xl border border-zinc-700 cursor-pointer hover:bg-zinc-800 active:scale-95 transition">
+                <div class="flex items-center gap-1">
+                    <span class="text-xl">🔥</span>
+                    <span id="streak-count" class="font-bold text-orange-400 text-lg">{{ streak }}</span>
+                </div>
+                <div class="text-xs text-zinc-400 leading-tight">
+                    Day Streak<br>
+                    <span class="text-green-400 font-medium">+{{ streak|add:5 }} XP Today</span>
+                </div>
+            </div>
+        </div>
+        <!-- Stories Bar (24-hour) -->
+        <div class="flex gap-4 overflow-x-auto pb-3 no-scrollbar mt-3">
+            <!-- Stories Bar (24-hour) -->
+            <div class="flex gap-4 overflow-x-auto pb-3 no-scrollbar mt-3">
+                <!-- Your Own Story -->
+                <div onclick="document.getElementById('story-upload').click()" class="flex flex-col items-center flex-shrink-0 cursor-pointer">
+                    <div class="w-14 h-14 rounded-full border-2 border-green-500 p-0.5 relative">
+                        <div class="w-full h-full bg-zinc-700 rounded-full flex items-center justify-center text-xs font-bold">+ Add</div>
+                    </div>
+                    <span class="text-[10px] text-zinc-400 mt-1">Your Story</span>
+                </div>
+
+                <!-- Other Users Stories -->
+                {% for story in stories %}
+                <div onclick="viewStory({{ story.id }})" class="flex flex-col items-center flex-shrink-0 cursor-pointer">
+                    <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
+                        <img src="{% if story.user.profile_pic %}{{ story.user.profile_pic.url }}{% else %}https://via.placeholder.com/56{% endif %}" 
+                            class="w-full h-full rounded-full object-cover">
+                    </div>
+                    <span class="text-[10px] text-zinc-400 mt-1">{{ story.user.username }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Hidden Story Upload -->
+            <input type="file" id="story-upload" accept="video/*" style="display:none" onchange="uploadStory(this)">
+            <!-- More dummy stories -->
+            <div class="flex flex-col items-center flex-shrink-0">
+                <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
+                    <div class="w-full h-full bg-zinc-600 rounded-full"></div>
+                </div>
+                <span class="text-[10px] text-zinc-400 mt-1">Disha</span>
+            </div>
+            <div class="flex flex-col items-center flex-shrink-0">
+                <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
+                    <div class="w-full h-full bg-zinc-600 rounded-full"></div>
+                </div>
+                <span class="text-[10px] text-zinc-400 mt-1">Montu's</span>
+            </div>
+            
+        </div>
+
+        <div class="flex gap-2 mt-4 overflow-x-auto pb-2 no-scrollbar">
+            <a href="/" class="px-5 py-1.5 text-sm rounded-3xl whitespace-nowrap border {% if not selected_category %}bg-green-500 text-black border-green-500{% else %}bg-zinc-900 border-zinc-700{% endif %}">For You</a>
+            {% for cat in categories %}
+            <a href="/?category={{ cat.slug }}" class="px-5 py-1.5 text-sm rounded-3xl whitespace-nowrap border {% if selected_category == cat.slug %}bg-green-500 text-black border-green-500{% else %}bg-zinc-900 border-zinc-700{% endif %}">{{ cat.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="feed-container pt-28" id="feed">
+    {% for content in contents %}
+    <div class="video-slide relative" data-content-id="{{ content.id }}" ondblclick="triggerDoubleTap(this, {{ content.id }})">
+        <video loop muted playsinline class="w-full h-full object-cover">
+            <source src="{{ content.video_url }}" type="video/mp4">
+        </video>
+
+        <div class="absolute top-0 left-0 right-0 h-0.5 bg-zinc-700 z-30">
+            <div id="progress-{{ content.id }}" class="h-full bg-green-500 w-0 transition-all"></div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 info-gradient p-6 pb-24">
+            <h2 class="text-2xl font-bold leading-tight mb-2">{{ content.title }}</h2>
+            <p class="text-sm text-zinc-300 line-clamp-2">{{ content.description }}</p>
+            <div class="mt-3 inline-flex items-center gap-2 text-xs bg-black/50 px-3 py-1 rounded-full">
+                <span>#{{ content.category.name }}</span>
+                <span class="text-green-400">• {{ content.language }}</span>
+            </div>
+        </div>
+
+        <div class="absolute bottom-32 right-5 flex flex-col items-center gap-6 z-20">
+            <button onclick="likeContent({{ content.id }})" class="flex flex-col items-center">
+                <div class="w-12 h-12 bg-zinc-900/70 backdrop-blur rounded-full flex items-center justify-center text-3xl active:scale-125 transition">❤️</div>
+                <span id="like-count-{{content.id}}" class="text-xs mt-1">{{ content.likes }}</span>
+            </button>
+            <!-- Follow Button -->
+            <button onclick="toggleFollow(this, {{ content.user.id|default:0 }})" 
+                    class="flex flex-col items-center text-green-400 hover:text-green-300 transition">
+                <div class="w-12 h-12 bg-zinc-900/70 backdrop-blur rounded-full flex items-center justify-center text-3xl active:scale-125 transition">👤</div>
+                <span class="text-xs mt-1 follow-text">Follow</span>
+            </button>
+            <button onclick="shareContent({{ content.id }}, '{{ content.title|escapejs }}')" class="flex flex-col items-center">
+                <div class="w-12 h-12 bg-zinc-900/70 backdrop-blur rounded-full flex items-center justify-center text-3xl active:scale-125 transition">📤</div>
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="load-more" 
+     hx-get="/load-more/?page=2{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+     hx-trigger="revealed" 
+     hx-swap="beforeend" 
+     hx-target="#feed">
+</div>
+
+<div id="profile-dashboard" class="fixed inset-0 bg-black/95 z-50 transform translate-x-full transition-transform duration-300 overflow-y-auto hidden">
+    <div class="max-w-md mx-auto p-6">
+        <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center font-black text-black text-xl shadow-lg shadow-green-500/20">
+                    U
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Guest Guru</h3>
+                    <p class="text-xs text-zinc-400">Level <span id="dashboard-level">1</span> Learner</p>
+                </div>
+            </div>
+            <button onclick="toggleDashboard(false)" class="text-zinc-400 hover:text-white bg-zinc-900 p-2 rounded-full border border-zinc-800">
+                ✕ Close
+            </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800 text-center">
+                <p class="text-xs text-zinc-400 font-semibold uppercase tracking-wider mb-1">Total Score</p>
+                <p class="text-2xl font-black text-green-400"><span id="dashboard-xp">0</span> <span class="text-xs font-normal">XP</span></p>
+            </div>
+            <div class="bg-zinc-900/80 p-4 rounded-2xl border border-zinc-800 text-center">
+                <p class="text-xs text-zinc-400 font-semibold uppercase tracking-wider mb-1">Daily Streak</p>
+                <p class="text-2xl font-black text-orange-500"><span id="dashboard-streak">{{ streak }}</span> <span class="text-xs font-normal">Days</span></p>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/30 p-5 rounded-3xl">
+            <h4 class="text-orange-400 font-bold text-sm mb-3 flex items-center gap-2">
+                <span>🎁</span> DAILY REWARD
+            </h4>
+            <button onclick="claimDailyReward()" 
+                    class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold py-3.5 rounded-2xl active:scale-95 transition">
+                Claim {{ streak|add:10 }} XP Reward
+            </button>
+            <p class="text-center text-xs text-orange-300 mt-2">Streak: {{ streak }} days 🔥</p>
+        </div>
+
+        <h4 class="text-sm font-bold text-zinc-300 uppercase tracking-widest mb-3 flex items-center gap-2 mt-8">
+            🏆 Unlocked Certificates & Badges
+        </h4>
+        <div class="flex flex-col gap-3">
+            <div id="badge-junior" class="bg-zinc-900/40 opacity-50 p-4 rounded-xl border border-zinc-800 flex items-center gap-4 transition-all">
+                <div class="text-3xl bg-zinc-800 p-2.5 rounded-xl">🌱</div>
+                <div class="flex-1">
+                    <h5 class="text-sm font-bold text-white">Junior Guru Badge</h5>
+                    <p class="text-xs text-zinc-400">Earn 50 XP to unlock fundamental rewards.</p>
+                </div>
+                <span class="status-icon text-sm font-bold text-zinc-500">Locked</span>
+            </div>
+
+            <div id="cert-alpha" class="bg-zinc-900/40 opacity-50 p-4 rounded-xl border border-zinc-800 flex items-center gap-4 transition-all">
+                <div class="text-3xl bg-zinc-800 p-2.5 rounded-xl">🎓</div>
+                <div class="flex-1">
+                    <h5 class="text-sm font-bold text-white">Alpha Master Certificate</h5>
+                    <p class="text-xs text-zinc-400">Reach 150 XP by learning complex multi-domain concepts.</p>
+                </div>
+                <button id="btn-download-cert" onclick="claimCertificate('Alpha Learner Certificate')" class="hidden bg-green-500 text-black font-bold text-[10px] px-3 py-1.5 rounded-full hover:bg-green-400 transition">
+                    View
+                </button>
+                <span class="status-icon text-sm font-bold text-zinc-500">Locked</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let xp = parseInt(localStorage.getItem('guru_xp')) || 0;
+    let streak = {{ streak|default:1 }};
+    let currentPage = 2;
+    let progressInterval = null;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const video = entry.target.querySelector('video');
+            const contentId = entry.target.dataset.contentId;
+            const progressBar = document.getElementById(`progress-${contentId}`);
+            
+            if (video) {
+                if (entry.isIntersecting) {
+                    video.play().catch(() => console.log("User interaction tracking active"));
+                    gainXP(3);
+                    
+                    // Live View Counter Update & API Call
+                    fetch(`/view/${contentId}/`, {method: 'POST'});
+                    
+                    // Synchronized Video Progress Bar Logic
+                    if (progressInterval) clearInterval(progressInterval);
+                    progressInterval = setInterval(() => {
+                        if (!video.paused && video.duration) {
+                            const percent = (video.currentTime / video.duration) * 100;
+                            if(progressBar) progressBar.style.width = `${percent}%`;
+                        }
+                    }, 100);
+                } else {
+                    video.pause();
+                    if(progressBar) progressBar.style.width = '0%';
+                }
+            }
+        });
+    }, { threshold: 0.7 });
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    // All fetch calls mein CSRF add karne ke liye
+    function fetchWithCSRF(url, options = {}) {
+        options.headers = options.headers || {};
+        options.headers['X-CSRFToken'] = getCSRFToken();
+        return fetch(url, options);
+    }
+
+
+
+    function gainXP(points) {
+        xp += points;
+        localStorage.setItem('guru_xp', xp);
+    }
+
+    function triggerDoubleTap(el, id) {
+        const heart = document.createElement('div');
+        heart.className = 'heart-pop';
+        heart.textContent = '❤️';
+        el.appendChild(heart);
+        likeContent(id);
+        setTimeout(() => heart.remove(), 800);
+    }
+
+    function likeContent(id) {
+        fetchWithCSRF(`/like/${id}/`, { 
+            method: 'POST'
+        })
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById(`like-count-${id}`);
+            if (el) el.textContent = data.likes;
+        })
+        .catch(err => console.log("Like error:", err));
+    }
+
+    function shareContent(id, title) {
+        const text = `🔥 ${title} on ScrollGuru! Seekho bina bore hue → ${window.location.origin}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    }
+
+    function claimDailyReward() {
+        const xpToGive = {{ streak|add:10 }};
+        xp += xpToGive;
+        localStorage.setItem('guru_xp', xp);
+        
+        // Dynamic Update on Open Dashboard
+        updateDashboardData();
+        
+        // Confetti Effect Trigger
+        runConfettiEffect();
+        alert(`🎉 ${xpToGive} XP Claimed Successfully!\n\nYour streak is growing strong! 🔥`);
+    }
+
+    function updateDashboardData() {
+        // Dynamic Badge Lock/Unlock thresholds
+        const currentLevel = Math.floor(xp / 100) + 1;
+        document.getElementById('dashboard-xp').textContent = xp;
+        document.getElementById('dashboard-level').textContent = currentLevel;
+
+        const juniorBadge = document.getElementById('badge-junior');
+        if (xp >= 50 && juniorBadge) {
+            juniorBadge.classList.remove('opacity-50', 'bg-zinc-900/40');
+            juniorBadge.classList.add('bg-green-500/10', 'border-green-500/30');
+            juniorBadge.querySelector('.status-icon').textContent = 'Unlocked ⭐';
+            juniorBadge.querySelector('.status-icon').className = 'status-icon text-sm font-bold text-green-400';
+        }
+
+        const alphaCert = document.getElementById('cert-alpha');
+        const viewBtn = document.getElementById('btn-download-cert');
+        if (xp >= 150 && alphaCert) {
+            alphaCert.classList.remove('opacity-50', 'bg-zinc-900/40');
+            alphaCert.classList.add('bg-green-500/10', 'border-green-500/30');
+            if(viewBtn) viewBtn.classList.remove('hidden');
+            alphaCert.querySelector('.status-icon').classList.add('hidden');
+        }
+    }
+
+    function toggleDashboard(show) {
+        const dashboard = document.getElementById('profile-dashboard');
+        if(show) {
+            updateDashboardData();
+            dashboard.classList.remove('hidden');
+            setTimeout(() => dashboard.classList.remove('translate-x-full'), 10);
+        } else {
+            dashboard.classList.add('translate-x-full');
+            setTimeout(() => dashboard.classList.add('hidden'), 300);
+        }
+    }
+    function toggleFollow(btn, userId) {
+        if (!userId) return;
+
+        const textSpan = btn.querySelector('.follow-text');
+        
+        fetch(`/follow/${userId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'followed') {
+                textSpan.textContent = 'Following';
+                textSpan.classList.add('text-green-400');
+                btn.onclick = () => unfollowUser(btn, userId);
+            }
+        });
+    }
+
+    function unfollowUser(btn, userId) {
+        fetch(`/unfollow/${userId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'unfollowed') {
+                const textSpan = btn.querySelector('.follow-text');
+                textSpan.textContent = 'Follow';
+                textSpan.classList.remove('text-green-400');
+                btn.onclick = () => toggleFollow(btn, userId);
+            }
+        });
+    }
+
+    function runConfettiEffect() {
+        const canvas = document.getElementById("confetti-canvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        let pieces = [];
+        for (let i = 0; i < 60; i++) {
+            pieces.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                r: Math.random() * 6 + 4,
+                d: Math.random() * canvas.height,
+                color: `rgba(${Math.floor(Math.random()*255)}, ${Math.floor(Math.random()*255)}, ${Math.floor(Math.random()*255)}, 1)`,
+                tilt: Math.random() * 10 - 5
+            });
+        }
+        
+        let stopConfetti = false;
+        setTimeout(() => { stopConfetti = true; ctx.clearRect(0, 0, canvas.width, canvas.height); }, 3000);
+
+        function draw() {
+            if (stopConfetti) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pieces.forEach((p, idx) => {
+                p.y += Math.cos(p.d) + 1 + p.r / 2;
+                p.x += Math.sin(p.tilt);
+                ctx.beginPath();
+                ctx.lineWidth = p.r;
+                ctx.strokeStyle = p.color;
+                ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+                ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+                ctx.stroke();
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+    function setupObserver() {
+        document.querySelectorAll('.video-slide').forEach(slide => observer.observe(slide));
+    }
+
+    // Initialize
+    setupObserver();
+    
+    // HTMX Dynamic Integration: Updates the API endpoints arguments on real-time lazy loading
+    document.body.addEventListener('htmx:afterSwap', () => {
+        setupObserver();
+        currentPage++;
+        const loadMoreEl = document.getElementById('load-more');
+        if (loadMoreEl) {
+            let baseUrl = `/load-more/?page=${currentPage}`;
+            {% if search_query %} baseUrl += `&search={{ search_query }}`; {% endif %}
+            {% if selected_category %} baseUrl += `&category={{ selected_category }}`; {% endif %}
+            loadMoreEl.setAttribute('hx-get', baseUrl);
+            htmx.process(loadMoreEl); // Reinitialize HTMX processing trigger
+        }
+    });
+</script>
+</body>
+</html>

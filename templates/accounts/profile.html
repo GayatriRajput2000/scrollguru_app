@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - ScrollGuru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#050505] text-white min-h-screen">
+    <div class="max-w-md mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-6">My Profile</h1>
+
+        <div class="bg-zinc-900 rounded-3xl p-6 text-center">
+            <img src="{% if request.user.profile_pic %}{{ request.user.profile_pic.url }}{% else %}https://via.placeholder.com/120{% endif %}" 
+                 class="w-28 h-28 rounded-full mx-auto border-4 border-green-500 object-cover">
+
+            <h2 class="text-xl font-bold mt-4">{{ request.user.username }}</h2>
+            <p class="text-zinc-400">{{ request.user.bio|default:"No bio yet" }}</p>
+
+            <div class="grid grid-cols-3 gap-4 mt-8">
+                <div>
+                    <p class="text-2xl font-bold text-green-400">{{ request.user.xp }}</p>
+                    <p class="text-xs text-zinc-400">XP</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-orange-400">{{ request.user.streak }}</p>
+                    <p class="text-xs text-zinc-400">Streak</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold">{{ request.user.level }}</p>
+                    <p class="text-xs text-zinc-400">Level</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="mt-8">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="w-full bg-green-500 text-black font-bold py-4 rounded-2xl mt-6">
+                Update Profile
+            </button>
+        </form>
+
+        <a href="/logout/" class="block text-center text-red-400 mt-8">Logout</a>
+    </div>
+</body>
+</html>
