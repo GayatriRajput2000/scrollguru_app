@@ -11,6 +11,7 @@ from django.contrib import messages
 from .forms import CustomUserCreationForm
 from users.models import BetaCode   # ← Yeh line add karo
 
+@login_required
 def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -49,7 +50,7 @@ def signup(request):
 
     return render(request, 'accounts/signup.html', {'form': form})
 
-
+@login_required
 def user_login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -78,12 +79,13 @@ def profile(request):
     
     return render(request, 'accounts/profile.html', {'form': form})
 
-
+@login_required
 def user_logout(request):
     logout(request)
     return redirect('login')
 
 
+@login_required
 def redirect_to_login(request):
     if request.user.is_authenticated:
         return redirect('home')      # Logged in user ko home bhej do
