@@ -1,0 +1,76 @@
+<div class="flex items-center justify-between w-full">
+
+    <!-- LEFT: LOGO -->
+    <h1 onclick="window.location.href='/'"
+        class="text-3xl font-black text-green-500 tracking-tighter cursor-pointer">
+        SG
+    </h1>
+
+    <!-- CENTER: SEARCH -->
+    <form action="/" method="GET" class="flex-1 mx-4">
+        <input type="text"
+               name="search"
+               value="{{ search_query|default:'' }}"
+               placeholder="Search tips, tricks, python..."
+               class="w-full bg-zinc-900 text-sm px-5 py-2.5 rounded-3xl border border-zinc-700 focus:border-green-500 outline-none">
+    </form>
+
+    <!-- RIGHT: AUTH AREA -->
+    <div class="flex items-center gap-3">
+
+        {% if user.is_authenticated %}
+
+        <!-- STREAK (moved here optional small) -->
+        <div onclick="toggleDashboard(true)"
+             class="flex items-center gap-2 bg-zinc-900/90 px-3 py-2 rounded-3xl border border-zinc-700 cursor-pointer hover:bg-zinc-800 active:scale-95 transition">
+
+            <span class="text-xl">🔥</span>
+            <span class="font-bold text-orange-400 text-sm">{{ streak }}</span>
+
+        </div>
+
+        <!-- PROFILE DROPDOWN -->
+        <div class="relative group">
+
+            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center font-bold text-black cursor-pointer">
+                {{ user.username|first|upper }}
+            </div>
+
+            <!-- Dropdown -->
+            <div class="absolute right-0 mt-3 hidden group-hover:block bg-zinc-900 border border-zinc-700 rounded-2xl w-44 shadow-xl z-50">
+
+                <div class="px-4 py-3 border-b border-zinc-800">
+                    <p class="text-sm font-bold text-white">{{ user.username }}</p>
+                    <p class="text-xs text-zinc-400">ScrollGuru User</p>
+                </div>
+
+                <a href="/profile/" class="block px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-800">
+                    👤 Profile
+                </a>
+
+                <a href="/logout/" class="block px-4 py-3 text-sm text-red-400 hover:bg-zinc-800">
+                    🚪 Logout
+                </a>
+
+            </div>
+        </div>
+
+        {% else %}
+
+        <!-- LOGIN BUTTON -->
+        <a href="/login/"
+           class="bg-green-500 text-black px-5 py-2 rounded-3xl font-bold text-sm hover:bg-green-400 active:scale-95 transition">
+            Login
+        </a>
+
+        <!-- SIGNUP BUTTON -->
+        <a href="/signup/"
+           class="bg-zinc-800 text-white px-5 py-2 rounded-3xl font-bold text-sm border border-zinc-700 hover:bg-zinc-700">
+            Sign Up
+        </a>
+
+        {% endif %}
+
+    </div>
+
+</div>

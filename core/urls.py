@@ -2,8 +2,6 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-
-# Views import kar rahe hain
 from content.views import follow_user, home, like_content,increment_view,load_more,share_content, stories_view, unfollow_user, upload_story,upload_video_view
 from accounts.views import signup, user_login, profile, user_logout, redirect_to_login
 
@@ -26,7 +24,6 @@ urlpatterns = [
     path('unfollow/<int:user_id>/', unfollow_user, name='unfollow_user'),
     path('stories/', stories_view, name='stories'),
     path('upload-story/', upload_story, name='upload_story'),
-    path('stories/', stories_view, name='stories'),
 ]
 
 # Important: Media files (videos) serve karne ke liye
