@@ -1,0 +1,112 @@
+{% for content in contents %}
+<div class="video-slide relative group"
+     data-content-id="{{ content.id }}"
+     ondblclick="triggerDoubleTap(this, {{ content.id }})">
+
+    <video
+        class="w-full h-full object-cover bg-black"
+        loop
+        muted
+        playsinline
+        preload="metadata"
+        data-video-id="{{ content.id }}">
+        <source src="{{ content.video_url }}" type="video/mp4">
+    </video>
+
+    <div class="absolute top-0 left-0 right-0 h-[3px] bg-zinc-950/60 z-30">
+        <div id="progress-{{ content.id }}"
+             class="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 w-0 transition-all duration-150 shadow-[0_0_8px_#min-rgba(238,42,123,0.8)]"></div>
+    </div>
+
+    <div class="absolute top-24 left-4 z-30 flex flex-col gap-2">
+        {% if content.rank_score > 50 %}
+        <div>
+            <span class="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[9px] font-black tracking-wider uppercase px-2.5 py-1 rounded-md shadow-md">
+                🔥 Trending
+            </span>
+        </div>
+        {% endif %}
+
+        {% if content.has_quiz %}
+        <div>
+            <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-[9px] font-black tracking-wider uppercase px-2.5 py-1 rounded-md shadow-md">
+                🧠 AI Quiz
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="absolute bottom-0 left-0 right-0 info-gradient p-5 pb-20 flex flex-col justify-end min-h-[240px]">
+        <h2 class="text-xl font-black leading-snug mb-1.5 text-white tracking-tight drop-shadow-md">
+            {{ content.title }}
+        </h2>
+
+        <p class="text-xs text-zinc-300/90 font-medium leading-relaxed line-clamp-2 max-w-[85%]">
+            {{ content.description|default:"Learn something powerful in seconds 🚀" }}
+        </p>
+
+        <div class="mt-3 flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] font-bold bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5 text-zinc-100">
+                #{{ content.category.name }}
+            </span>
+
+            <span class="text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2.5 py-1 rounded-full border border-purple-500/20">
+                {{ content.language }}
+            </span>
+
+            <span class="text-[10px] text-zinc-400 font-semibold pl-1">
+                👁 {{ content.views }} views
+            </span>
+        </div>
+    </div>
+
+    <div class="absolute bottom-24 right-3.5 flex flex-col items-center gap-4 z-20">
+
+        <button onclick="likeContent({{ content.id }})"
+                class="group flex flex-col items-center active:scale-90 transition duration-150">
+            <div class="w-11 h-11 bg-zinc-950/40 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-xl shadow-lg shadow-black/30 group-hover:bg-zinc-900 transition">
+                ❤️
+            </div>
+            <span id="like-count-{{ content.id }}"
+                  class="text-[10px] font-bold mt-1 text-zinc-300 shadow-sm">
+                {{ content.likes }}
+            </span>
+        </button>
+
+        <button onclick="toggleFollow(this, {{ content.user.id|default:0 }})"
+                class="group flex flex-col items-center active:scale-90 transition duration-150">
+            <div class="w-11 h-11 bg-zinc-950/40 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-xl shadow-lg shadow-black/30 group-hover:bg-zinc-900 transition">
+                👤
+            </div>
+            <span class="text-[9px] font-bold mt-1 follow-text text-zinc-300 shadow-sm">
+                Follow
+            </span>
+        </button>
+
+        <button onclick="shareContent({{ content.id }}, '{{ content.title|escapejs }}')"
+                class="group flex flex-col items-center active:scale-90 transition duration-150">
+            <div class="w-11 h-11 bg-zinc-950/40 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-xl shadow-lg shadow-black/30 group-hover:bg-zinc-900 transition">
+                📤
+            </div>
+            <span class="text-[9px] font-bold mt-1 text-zinc-400 shadow-sm">Share</span>
+        </button>
+
+        {% if content.has_quiz %}
+        <button onclick="openQuiz({{ content.id }})"
+                class="group flex flex-col items-center active:scale-95 transition duration-150 mt-1">
+            <div class="w-11 h-11 bg-gradient-to-tr from-purple-500 to-indigo-600 border border-purple-400/40 rounded-full flex items-center justify-center text-lg shadow-xl shadow-purple-500/20 animate-pulse">
+                🧠
+            </div>
+            <span class="text-[9px] font-black mt-1 text-purple-400 tracking-wide uppercase">
+                Quiz
+            </span>
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="heart-pop hidden text-6xl">❤️</div>
+    </div>
+
+</div>
+{% endfor %}

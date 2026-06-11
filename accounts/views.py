@@ -3,13 +3,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import CustomUserCreationForm, ProfileUpdateForm
-
-
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
-from django.contrib import messages
-from .forms import CustomUserCreationForm
-from users.models import BetaCode   # ← Yeh line add karo
+from users.models import BetaCode
 
 
 def signup(request):
@@ -17,34 +11,54 @@ def signup(request):
         form = CustomUserCreationForm(request.POST)
         beta_code_input = request.POST.get('beta_code', '').strip().upper()
 
-        if form.is_valid():
-            if not beta_code_input:
-                messages.error(request, "Beta Access Code is required for registration!")
-                return render(request, 'accounts/signup.html', {'form': form})
+        if form.is_valid() and beta_code_input:
 
-            try:
-                beta = BetaCode.objects.get(code=beta_code_input, is_used=False)
-                
-                user = form.save()
-                user.is_beta_user = True
-                user.beta_code_used = beta_code_input
-                user.save()
+            beta = BetaCode.objects.filter(
+                code=beta_code_input,
+                is_used=False
+            ).first()
 
-                # Mark code as used
-                beta.is_used = True
-                beta.used_by = user
-                beta.save()
-
-                login(request, user)
-                messages.success(request, "🎉 Welcome to ScrollGuru Beta! You are one of the first 10 users.")
-                return redirect('feed')   # ya 'home'
-
-            except BetaCode.DoesNotExist:
+            if not beta:
                 messages.error(request, "Invalid or already used Beta Code")
                 return render(request, 'accounts/signup.html', {'form': form})
+
+            user = form.save()
+
+            if hasattr(user, 'is_beta_user'):
+                user.is_beta_user = True
+
+            if hasattr(user, 'beta_code_used'):
+                user.beta_code_used = beta_code_input
+
+            user.save()
+
+            # beta.is_used = True
+
+            if hasattr(beta, 'used_by'):
+                beta.used_by = user
+
+            beta.save()
+
+            login(request, user)
+            print(f"New user signed up: {user.username} (Beta Code: {beta_code_input})")  # Debugging line
+            print(request.POST)  # Debugging line to see all form data
+            messages.success(
+                request,
+                "🎉 Welcome to ScrollGuru Beta! Account created successfully."
+            )
+            return redirect('home')
+
         else:
-            messages.error(request, "Please correct the errors below")
-    
+            print("Form errors:", form.errors)
+            print("Beta code input:", beta_code_input)
+
+            if not beta_code_input:
+                messages.error(request, "Beta Access Code is required!")
+            else:
+                messages.error(request, "Please correct the errors below.")
+
+            return render(request, 'accounts/signup.html', {'form': form})
+
     else:
         form = CustomUserCreationForm()
 
@@ -53,16 +67,16 @@ def signup(request):
 
 def user_login(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        print("Username:", username)  # Debugging line
-        password = request.POST['password']
-        [print("Password:", password)]  # Debugging line (remove in production!)
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
-        if user:
+        if user is not None:
             login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
             return redirect('home')
         else:
             messages.error(request, "Invalid username or password")
+    
     return render(request, 'accounts/login.html')
 
 

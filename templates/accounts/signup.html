@@ -42,21 +42,33 @@
                 <div>
                     <label class="block text-zinc-400 text-sm mb-2 font-medium">Username</label>
                     {{ form.username }}
+                    <div class="text-red-400 text-xs mt-1">
+                        {{ form.username.errors }}
+                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-zinc-400 text-sm mb-2 font-medium">Email Address</label>
-                    {{ form.email }}
+                        <label class="block text-zinc-400 text-sm mb-2 font-medium">Email Address</label>
+                        {{ form.email }}
+                        <div class="text-red-400 text-xs mt-1">
+                            {{ form.email.errors }}
+                        </div>
                 </div>
 
                 <div>
                     <label class="block text-zinc-400 text-sm mb-2 font-medium">Password</label>
                     {{ form.password1 }}
+                    <div class="text-red-400 text-xs mt-1">
+                        {{ form.password1.errors }}
+                    </div>
                 </div>
 
                 <div>
                     <label class="block text-zinc-400 text-sm mb-2 font-medium">Confirm Password</label>
                     {{ form.password2 }}
+                    <div class="text-red-400 text-xs mt-1">
+                        {{ form.password2.errors }}
+                    </div>
                 </div>
 
                 <!-- Beta Access Code (Added) -->

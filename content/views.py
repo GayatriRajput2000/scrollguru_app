@@ -5,15 +5,28 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from .models import Content, Category, UserStreak, Story
 from django.db import models  # ← Yeh missing tha bhai, isko add kiya!
-from django.db.models import Q, F
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from accounts.models import CustomUser
 from .models import Follow
-from django.utils import timezone
-# Group by user for better UI
 from itertools import groupby
 from operator import attrgetter
+from django.template.loader import render_to_string
+
+
+def load_more(request):
+    page = int(request.GET.get('page', 1))
+    start = (page - 1) * 5
+
+    contents = Content.objects.all()[start:start + 5]
+    if not contents:
+        return HttpResponse("")
+
+    html = render_to_string("partials/feed_items.html", {
+        "contents": contents
+    })
+    return HttpResponse(html)
+
 
 def get_or_create_streak(request):
     """
@@ -58,8 +71,6 @@ def get_or_create_streak(request):
     return streak
 
 
-
-
 def home(request):
     category_slug = request.GET.get('category')
     lang = request.GET.get('lang')
@@ -78,39 +89,46 @@ def home(request):
         'selected_lang': lang
     })
 
+
 def load_more(request):
-    # Bug Fix: Direct HTML response for HTMX
     page = int(request.GET.get('page', 1))
     start = (page - 1) * 5
-    contents = Content.objects.all()[start : start + 5]
-    
-    if not contents: return HttpResponse("") # Stop HTMX
+    contents = Content.objects.all()[start:start + 5]
+    if not contents:
+        return HttpResponse("")
 
-    html = ""
-    for c in contents:
-        html += f'''
-        <div class="video-slide" data-content-id="{c.id}">
-            <video loop muted playsinline class="w-full h-full object-cover">
-                <source src="{c.video_url}" type="video/mp4">
-            </video>
-            <div class="absolute bottom-0 p-6 text-white z-10 w-full bg-gradient-to-t from-black/90 to-transparent">
-                <h2 class="text-xl font-bold">{c.title}</h2>
-                <p class="text-xs opacity-70">#{c.category.name} | {c.language}</p>
-            </div>
-            <div class="absolute bottom-32 right-4 flex flex-col gap-6 items-center">
-                <button onclick="likeContent({c.id})" class="bg-black/20 p-3 rounded-full backdrop-blur-md">❤️ <span id="l-{c.id}">{c.likes}</span></button>
-                <button onclick="shareContent({c.id})" class="bg-black/20 p-3 rounded-full backdrop-blur-md">📤</button>
-            </div>
-        </div>'''
+    html = render_to_string("templates/partials/feed_items.html", {
+        "contents": contents
+    })
+
     return HttpResponse(html)
+
 
 @csrf_exempt
 def like_content(request, content_id):
+    from .models import Like  # recommended model
+
     c = get_object_or_404(Content, id=content_id)
-    c.likes += 1
-    c.rank_score += 5 # Increase rank on like
-    c.save()
-    return JsonResponse({'likes': c.likes})
+
+    like, created = Like.objects.get_or_create(
+        user=request.user,
+        content=c
+    )
+
+    if not created:
+        like.delete()
+        status = "unliked"
+        c.likes = F('likes') - 1
+    else:
+        status = "liked"
+        c.likes = F('likes') + 1
+        c.rank_score += 5
+
+    c.save(update_fields=['likes', 'rank_score'])
+
+    c.refresh_from_db()
+
+    return JsonResponse({'likes': c.likes, 'status': status})
 
 
 @csrf_exempt
@@ -207,38 +225,40 @@ def unfollow_user(request, user_id):
     return JsonResponse({'status': 'unfollowed'})
 
 
-def stories_view(request):
-    # Active stories (not expired)
-    active_stories = Story.objects.filter(expires_at__gt=timezone.now()).order_by('-created_at')
-    return render(request, 'stories.html', {'stories': active_stories})
-
-
 @login_required
 def upload_story(request):
     if request.method == 'POST':
         video = request.FILES.get('story_video')
         caption = request.POST.get('caption', '')
-        
-        if video:
-            Story.objects.create(
-                user=request.user,
-                video=video,
-                caption=caption
-            )
-            messages.success(request, "Story uploaded successfully! (24 hours)")
-            return redirect('home')
-    return redirect('home')
+
+        if not video:
+            return JsonResponse({'error': 'No video'}, status=400)
+
+        story = Story.objects.create(
+            user=request.user,
+            video=video,
+            caption=caption,
+            expires_at=timezone.now() + timezone.timedelta(hours=24)
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'id': story.id
+        })
+
+    return JsonResponse({'error': 'invalid'}, status=405)
 
 
 
 def stories_view(request):
-    # Active stories only (not expired)
-    active_stories = Story.objects.filter(expires_at__gt=timezone.now()).order_by('user', '-created_at')
+    active_stories = Story.objects.filter(
+        expires_at__gt=timezone.now()
+    ).order_by('user', '-created_at')
+
     stories_by_user = {}
     for user, stories in groupby(active_stories, key=attrgetter('user')):
         stories_by_user[user] = list(stories)
-    
+
     return render(request, 'stories.html', {
         'stories_by_user': stories_by_user,
-        'active_stories': active_stories
     })

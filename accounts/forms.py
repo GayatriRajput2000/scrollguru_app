@@ -39,13 +39,6 @@ class CustomUserCreationForm(UserCreationForm):
             'placeholder': 'Confirm password'
         })
 
-    # Yeh function automatically naye user ko Admin approval tak band rakhega
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.is_active = False  # Account banega par permission nahi hogi
-        if commit:
-            user.save()
-        return user
 
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:

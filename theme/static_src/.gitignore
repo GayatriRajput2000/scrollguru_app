@@ -9,3 +9,6 @@ media/
 
 *.log
 .DS_Store
+my_env/
+venv/
+.vscode/
