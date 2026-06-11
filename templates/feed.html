@@ -32,47 +32,32 @@
 <div class="fixed top-0 left-0 right-0 bg-black/95 z-40 border-b border-zinc-800">
     <div class="max-w-md mx-auto p-4">
         {% include "includes/topbar.html" %}
-        <!-- Stories Bar (24-hour) -->
+               <!-- Stories Bar (24-hour) -->
         <div class="flex gap-4 overflow-x-auto pb-3 no-scrollbar mt-3">
-            <!-- Stories Bar (24-hour) -->
-            <div class="flex gap-4 overflow-x-auto pb-3 no-scrollbar mt-3">
-                <!-- Your Own Story -->
-                <div onclick="document.getElementById('story-upload').click()" class="flex flex-col items-center flex-shrink-0 cursor-pointer">
-                    <div class="w-14 h-14 rounded-full border-2 border-green-500 p-0.5 relative">
-                        <div class="w-full h-full bg-zinc-700 rounded-full flex items-center justify-center text-xs font-bold">+ Add</div>
-                    </div>
-                    <span class="text-[10px] text-zinc-400 mt-1">Your Story</span>
-                </div>
-
-                <!-- Other Users Stories -->
-                {% for story in stories %}
-                <div onclick="viewStory({{ story.id }})" class="flex flex-col items-center flex-shrink-0 cursor-pointer">
-                    <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
-                        <img src="{% if story.user.profile_pic %}{{ story.user.profile_pic.url }}{% else %}https://via.placeholder.com/56{% endif %}" 
-                            class="w-full h-full rounded-full object-cover">
-                    </div>
-                    <span class="text-[10px] text-zinc-400 mt-1">{{ story.user.username }}</span>
-                </div>
-                {% endfor %}
-            </div>
-
-            <!-- Hidden Story Upload -->
-            <input type="file" id="story-upload" accept="video/*" style="display:none" onchange="uploadStory(this)">
-            <!-- More dummy stories -->
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
-                    <div class="w-full h-full bg-zinc-600 rounded-full"></div>
-                </div>
-                <span class="text-[10px] text-zinc-400 mt-1">Disha</span>
-            </div>
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
-                    <div class="w-full h-full bg-zinc-600 rounded-full"></div>
-                </div>
-                <span class="text-[10px] text-zinc-400 mt-1">Montu's</span>
-            </div>
             
+            <!-- Your Own Story -->
+            <div onclick="document.getElementById('story-upload').click()" class="flex flex-col items-center flex-shrink-0 cursor-pointer">
+                <div class="w-14 h-14 rounded-full border-2 border-green-500 p-0.5 relative">
+                    <div class="w-full h-full bg-zinc-700 rounded-full flex items-center justify-center text-xs font-bold">+ Add</div>
+                </div>
+                <span class="text-[10px] text-zinc-400 mt-1">Your Story</span>
+            </div>
+
+            <!-- Dynamic Stories from Database -->
+            {% for story in stories %}
+            <div onclick="viewStory({{ story.id }})" class="flex flex-col items-center flex-shrink-0 cursor-pointer">
+                <div class="w-14 h-14 rounded-full border-2 border-pink-500 p-0.5">
+                    <img src="{% if story.user.profile_pic %}{{ story.user.profile_pic.url }}{% else %}https://via.placeholder.com/56{% endif %}" 
+                        class="w-full h-full rounded-full object-cover">
+                </div>
+                <span class="text-[10px] text-zinc-400 mt-1">{{ story.user.username }}</span>
+            </div>
+            {% endfor %}
+
         </div>
+
+        <!-- Hidden Story Upload -->
+        <input type="file" id="story-upload" accept="video/*" style="display:none" onchange="uploadStory(this)">
 
         <div class="flex gap-2 mt-4 overflow-x-auto pb-2 no-scrollbar">
             <a href="/" class="px-5 py-1.5 text-sm rounded-3xl whitespace-nowrap border {% if not selected_category %}bg-green-500 text-black border-green-500{% else %}bg-zinc-900 border-zinc-700{% endif %}">For You</a>
