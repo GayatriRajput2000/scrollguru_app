@@ -407,8 +407,14 @@
         const loadMoreEl = document.getElementById('load-more');
         if (loadMoreEl) {
             let baseUrl = `/load-more/?page=${currentPage}`;
-            {% if search_query %} baseUrl += `&search={{ search_query }}`; {% endif %}
-            {% if selected_category %} baseUrl += `&category={{ selected_category }}`; {% endif %}
+            
+            // SAFE TEMPLATE VARIABLES FOR JAVASCRIPT
+            const searchQuery = "{{ search_query|default:'' }}";
+            const selectedCat = "{{ selected_category|default:'' }}";
+            
+            if (searchQuery) baseUrl += `&search=${encodeURIComponent(searchQuery)}`;
+            if (selectedCat) baseUrl += `&category=${encodeURIComponent(selectedCat)}`;
+            
             loadMoreEl.setAttribute('hx-get', baseUrl);
             htmx.process(loadMoreEl);
         }

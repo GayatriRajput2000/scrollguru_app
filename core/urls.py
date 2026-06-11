@@ -4,6 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from content.views import follow_user, home, like_content,increment_view,load_more,share_content, stories_view, unfollow_user, upload_story,upload_video_view
 from accounts.views import signup, user_login, profile, user_logout, redirect_to_login
+from django.views.generic import TemplateView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,6 +26,10 @@ urlpatterns = [
     path('unfollow/<int:user_id>/', unfollow_user, name='unfollow_user'),
     path('stories/', stories_view, name='stories'),
     path('upload-story/', upload_story, name='upload_story'),
+    path('service-worker.js', TemplateView.as_view(
+        template_name="service-worker.js", 
+        content_type='application/javascript'
+    ), name='service-worker'),
 ]
 
 # Important: Media files (videos) serve karne ke liye
